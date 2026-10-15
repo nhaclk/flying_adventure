@@ -46,11 +46,20 @@ class _GameScreenState extends State<GameScreen> {
       final name = await _showNameDialog(score);
       if (!mounted) return;
 
-      // Always save the score BEFORE navigating to the leaderboard.
+      // Submit the score before navigating to the global leaderboard.
       // The name dialog returns the entered text when SAVE SCORE is pressed.
       if (name != null) {
         try {
-          await service.addScore(name, score);
+          final saved = await service.addScore(name, score);
+          if (!saved) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Điểm không còn đủ cao để vào Top 10.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         } catch (error) {
           if (!mounted) return;
 

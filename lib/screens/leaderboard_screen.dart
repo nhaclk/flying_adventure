@@ -14,6 +14,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final ScoreService service = ScoreService();
   List<ScoreModel> scores = const [];
   bool loading = true;
+  String? error;
 
   @override
   void initState() {
@@ -22,12 +23,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Future<void> _load() async {
-    final result = await service.getScores();
-    if (!mounted) return;
-    setState(() {
-      scores = result;
-      loading = false;
-    });
+    try {
+      final result = await service.getScores();
+      if (!mounted) return;
+      setState(() {
+        scores = result;
+        loading = false;
+        error = null;
+      });
+    } catch (exception) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        error = exception.toString();
+      });
+    }
   }
 
   @override
@@ -42,6 +52,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
+          : error != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Could not load the global leaderboard.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(error!, textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton(onPressed: _load, child: const Text('Retry')),
+                  ],
+                ),
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView.builder(
@@ -81,7 +111,11 @@ class _ScoreRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xffd7edf5)),
         boxShadow: const [
-          BoxShadow(color: Color(0x100b557e), blurRadius: 10, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x100b557e),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: ListTile(
@@ -99,7 +133,11 @@ class _ScoreRow extends StatelessWidget {
         ),
         title: Text(
           filled ? score!.name : '—',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xff214f6b)),
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: Color(0xff214f6b),
+          ),
         ),
         subtitle: Text(filled ? 'Great flight!' : 'Open spot'),
         trailing: Text(
